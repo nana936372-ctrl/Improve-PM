@@ -13,12 +13,25 @@ describe("middleware", () => {
   beforeEach(() => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    createServerClientMock.mockReset();
     createServerClientMock.mockImplementation(() => {
       throw new Error("Supabase client should not be created without config");
     });
   });
 
   it("allows public auth page when Supabase config is missing", async () => {
+    const { middleware } = await import("./middleware");
+
+    const response = await middleware(new NextRequest("http://localhost/auth"));
+
+    expect(response.status).toBe(200);
+    expect(createServerClientMock).not.toHaveBeenCalled();
+  });
+
+  it("does not check Supabase sessions for public pages", async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+
     const { middleware } = await import("./middleware");
 
     const response = await middleware(new NextRequest("http://localhost/auth"));
