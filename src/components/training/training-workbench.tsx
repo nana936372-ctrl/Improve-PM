@@ -17,6 +17,7 @@ export function TrainingWorkbench() {
   const [question, setQuestion] = useState<TrainingQuestion | null>(null);
   const [answer, setAnswer] = useState("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [followups, setFollowups] = useState<FollowupTurn[]>([]);
   const [status, setStatus] = useState("");
@@ -39,6 +40,13 @@ export function TrainingWorkbench() {
     });
     const data = await response.json();
     setQuestion(data.question);
+    const sessionResponse = await fetch("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: data.question })
+    });
+    const sessionData = await sessionResponse.json();
+    setSessionId(sessionData.sessionId);
     setEvaluation(null);
     setFollowups([]);
     setAnswer("");
@@ -59,6 +67,16 @@ export function TrainingWorkbench() {
     });
     const data = await response.json();
     setEvaluation(data.evaluation);
+    if (sessionId) {
+      await fetch(`/api/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answer: question.type === "case_analysis" ? { textAnswer: answer } : { selectedOptions },
+          evaluation: data.evaluation
+        })
+      });
+    }
     setStatus("");
   }
 

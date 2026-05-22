@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import { ABILITY_KEYS } from "@/lib/constants/abilities";
+import { ABILITY_KEYS, type AbilityKey } from "@/lib/constants/abilities";
 
-const abilityKeySchema = z.enum(ABILITY_KEYS as [string, ...string[]]);
+const abilityKeySchema = z.custom<AbilityKey>((value) => typeof value === "string" && (ABILITY_KEYS as readonly string[]).includes(value));
 
 export const choiceOptionSchema = z.object({
   id: z.enum(["A", "B", "C", "D"]),
