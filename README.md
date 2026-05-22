@@ -27,6 +27,16 @@ cp .env.example .env.local
 - `AI_API_KEY`
 - `AI_MODEL`
 
+当前实现使用 OpenAI-compatible Chat Completions 接口，因此可以配置 DeepSeek：
+
+```dotenv
+AI_BASE_URL=https://api.deepseek.com
+AI_API_KEY=你的 DeepSeek API Key
+AI_MODEL=deepseek-v4-flash
+```
+
+也可以使用 `deepseek-v4-pro` 等 DeepSeek 当前可用模型；不要把 `AI_BASE_URL` 写成模型页或控制台地址。
+
 5. 应用数据库迁移：
 
 ```bash
