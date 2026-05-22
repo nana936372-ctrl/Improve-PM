@@ -6,15 +6,27 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 
 export function AuthForm() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }, []);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const configMessage = supabase ? "" : "请先配置 Supabase 登录参数。";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!supabase) {
+      setMessage(configMessage);
+      return;
+    }
+
     setIsLoading(true);
     setMessage("");
 
@@ -59,8 +71,8 @@ export function AuthForm() {
             required
           />
         </label>
-        {message ? <p className="rounded bg-red-50 px-3 py-2 text-sm text-danger">{message}</p> : null}
-        <button className="rounded bg-brand px-4 py-2 text-white disabled:opacity-60" disabled={isLoading} type="submit">
+        {message || configMessage ? <p className="rounded bg-red-50 px-3 py-2 text-sm text-danger">{message || configMessage}</p> : null}
+        <button className="rounded bg-brand px-4 py-2 text-white disabled:opacity-60" disabled={isLoading || !supabase} type="submit">
           {isLoading ? "处理中..." : mode === "login" ? "登录" : "注册"}
         </button>
       </form>

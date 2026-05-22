@@ -25,3 +25,18 @@ textarea,
 select {
   font: inherit;
 }
+
+textarea,
+input,
+select,
+button {
+  max-width: 100%;
+}
+
+pre,
+p,
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}
