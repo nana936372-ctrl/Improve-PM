@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { resolveSupabasePublicConfig } from "@/lib/supabase/config";
+
 const protectedPaths = ["/dashboard", "/history", "/settings"];
 
 type CookieToSet = {
@@ -13,14 +15,13 @@ type CookieToSet = {
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseConfig = resolveSupabasePublicConfig();
 
   if (!isProtected) {
     return response;
   }
 
-  if (!url || !anonKey) {
+  if (!supabaseConfig) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/auth";
     redirectUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -28,8 +29,8 @@ export async function middleware(request: NextRequest) {
   }
 
   const supabase = createServerClient(
-    url,
-    anonKey,
+    supabaseConfig.url,
+    supabaseConfig.key,
     {
       cookies: {
         getAll() {

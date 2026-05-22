@@ -19,7 +19,9 @@ cp .env.example .env.local
 3. 配置 Supabase：
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+旧项目如果只有 anon key，也可以继续使用 `NEXT_PUBLIC_SUPABASE_ANON_KEY`。
 
 如果使用本地 Supabase：
 
@@ -28,7 +30,7 @@ supabase start
 supabase db reset
 ```
 
-然后把 `supabase status` 输出里的 `API URL` 和 `anon key` 填入 `.env.local`。
+然后把 `supabase status` 输出里的 `API URL` 和 publishable/anon key 填入 `.env.local`。
 
 如果使用云端 Supabase：
 
