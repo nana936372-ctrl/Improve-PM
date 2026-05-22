@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ABILITY_DIMENSIONS, type AbilityKey } from "@/lib/constants/abilities";
+import { AI_CONFIG_STORAGE_KEY, isCompleteAiConfig, type StoredAiConfig } from "@/lib/settings/ai-config";
 import type { Difficulty, EvaluationResult, QuestionType, TrainingQuestion } from "@/lib/types/training";
 
 import { AnswerComposer } from "./answer-composer";
@@ -22,6 +23,13 @@ export function TrainingWorkbench() {
   const [followups, setFollowups] = useState<FollowupTurn[]>([]);
   const [status, setStatus] = useState("");
 
+  function getAiConfig() {
+    const raw = localStorage.getItem(AI_CONFIG_STORAGE_KEY);
+    if (!raw) return undefined;
+    const config = JSON.parse(raw) as Partial<StoredAiConfig>;
+    return isCompleteAiConfig(config) ? config : undefined;
+  }
+
   useEffect(() => {
     const saved = localStorage.getItem("training-draft");
     if (saved) setAnswer(saved);
@@ -36,7 +44,7 @@ export function TrainingWorkbench() {
     const response = await fetch("/api/ai/generate-question", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionType, difficulty, abilityKeys: [abilityKey] })
+      body: JSON.stringify({ questionType, difficulty, abilityKeys: [abilityKey], aiConfig: getAiConfig() })
     });
     const data = await response.json();
     setQuestion(data.question);
@@ -62,7 +70,8 @@ export function TrainingWorkbench() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question,
-        answer: question.type === "case_analysis" ? { textAnswer: answer } : { selectedOptions }
+        answer: question.type === "case_analysis" ? { textAnswer: answer } : { selectedOptions },
+        aiConfig: getAiConfig()
       })
     });
     const data = await response.json();
