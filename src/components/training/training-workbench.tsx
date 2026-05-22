@@ -10,6 +10,7 @@ import { AnswerComposer } from "./answer-composer";
 import { EvaluationPanel } from "./evaluation-panel";
 import { FollowupPanel, type FollowupTurn } from "./followup-panel";
 import { QuestionCard } from "./question-card";
+import { ReferenceAnswerPanel, type ReferenceAnswer } from "./reference-answer-panel";
 
 export function TrainingWorkbench() {
   const [questionType, setQuestionType] = useState<QuestionType>("case_analysis");
@@ -21,6 +22,8 @@ export function TrainingWorkbench() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [followups, setFollowups] = useState<FollowupTurn[]>([]);
+  const [pendingFollowupAnswer, setPendingFollowupAnswer] = useState("");
+  const [referenceAnswer, setReferenceAnswer] = useState<ReferenceAnswer | null>(null);
   const [status, setStatus] = useState("");
 
   function getAiConfig() {
@@ -57,6 +60,8 @@ export function TrainingWorkbench() {
     setSessionId(sessionData.sessionId);
     setEvaluation(null);
     setFollowups([]);
+    setPendingFollowupAnswer("");
+    setReferenceAnswer(null);
     setAnswer("");
     setSelectedOptions([]);
     setStatus("");
@@ -82,10 +87,53 @@ export function TrainingWorkbench() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           answer: question.type === "case_analysis" ? { textAnswer: answer } : { selectedOptions },
-          evaluation: data.evaluation
+          evaluation: data.evaluation,
+          followups
         })
       });
     }
+    setStatus("");
+  }
+
+  async function generateFollowup() {
+    if (!question || !evaluation || followups.length >= 3) return;
+    setStatus("正在生成追问...");
+    const response = await fetch("/api/ai/followup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, evaluation, previousAnswers: followups, aiConfig: getAiConfig() })
+    });
+    const data = await response.json();
+    setFollowups((current) => [...current, { question: data.followup.question, intent: data.followup.intent }]);
+    setStatus("");
+  }
+
+  function submitFollowupAnswer() {
+    setFollowups((current) => {
+      const next = [...current];
+      const last = next[next.length - 1];
+      if (last) next[next.length - 1] = { ...last, answer: pendingFollowupAnswer };
+      return next;
+    });
+    setPendingFollowupAnswer("");
+  }
+
+  async function generateReferenceAnswer() {
+    if (!question || !evaluation) return;
+    setStatus("正在生成参考答案...");
+    const response = await fetch("/api/ai/reference-answer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question,
+        answer: question.type === "case_analysis" ? { textAnswer: answer } : { selectedOptions },
+        evaluation,
+        followups,
+        aiConfig: getAiConfig()
+      })
+    });
+    const data = await response.json();
+    setReferenceAnswer(data.referenceAnswer);
     setStatus("");
   }
 
@@ -140,7 +188,20 @@ export function TrainingWorkbench() {
         <button className="rounded bg-ink px-4 py-2 text-white disabled:opacity-50" type="button" disabled={!question} onClick={submitAnswer}>
           提交评分
         </button>
-        <FollowupPanel turns={followups} />
+        <FollowupPanel
+          turns={followups}
+          pendingAnswer={pendingFollowupAnswer}
+          onAnswerChange={setPendingFollowupAnswer}
+          onSubmitAnswer={submitFollowupAnswer}
+          onGenerateFollowup={generateFollowup}
+          canGenerate={Boolean(question?.type === "case_analysis" && evaluation && followups.length < 3)}
+        />
+        {evaluation ? (
+          <button className="w-fit rounded border border-line bg-white px-4 py-2" type="button" onClick={generateReferenceAnswer}>
+            生成参考答案
+          </button>
+        ) : null}
+        <ReferenceAnswerPanel referenceAnswer={referenceAnswer} />
       </section>
 
       <EvaluationPanel evaluation={evaluation} />

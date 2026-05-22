@@ -11,7 +11,16 @@ const updateSchema = z.object({
     selectedOptions: z.array(z.string()).optional(),
     textAnswer: z.string().optional()
   }),
-  evaluation: evaluationSchema
+  evaluation: evaluationSchema,
+  followups: z
+    .array(
+      z.object({
+        question: z.string(),
+        intent: z.string().optional(),
+        answer: z.string().optional()
+      })
+    )
+    .optional()
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -44,6 +53,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { error: snapshotError } = await supabase.from("ability_snapshots").insert(buildAbilitySnapshots(id, user.id, input.evaluation));
   if (snapshotError) throw snapshotError;
+
+  if (input.followups?.length) {
+    const { error: followupError } = await supabase.from("followup_turns").upsert(
+      input.followups.map((turn, index) => ({
+        session_id: id,
+        user_id: user.id,
+        turn_index: index + 1,
+        question: turn.question,
+        intent: turn.intent ?? null,
+        user_answer: turn.answer ?? null
+      })),
+      { onConflict: "session_id,turn_index" }
+    );
+    if (followupError) throw followupError;
+  }
 
   const { error: sessionError } = await supabase
     .from("training_sessions")
