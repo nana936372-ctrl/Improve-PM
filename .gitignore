@@ -2,6 +2,7 @@
 .worktrees/
 .next/
 node_modules/
+.env
 .env.local
 .env*.local
 dist/
@@ -9,3 +10,5 @@ coverage/
 playwright-report/
 test-results/
 tsconfig.tsbuildinfo
+supabase/.branches/
+supabase/.temp/

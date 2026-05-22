@@ -21,6 +21,29 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
+如果使用本地 Supabase：
+
+```bash
+supabase start
+supabase db reset
+```
+
+然后把 `supabase status` 输出里的 `API URL` 和 `anon key` 填入 `.env.local`。
+
+如果使用云端 Supabase：
+
+```bash
+supabase link --project-ref 你的项目 ref
+supabase db push
+```
+
+同时在 Supabase Auth 的 URL Configuration 中确认：
+
+- Site URL：本地开发用 `http://localhost:3000`，线上用你的部署域名
+- Redirect URLs：加入 `http://localhost:3000/**` 和线上部署域名
+
+项目里的 `supabase/config.toml` 已配置本地开发的 API、DB、Studio、Auth 和 seed 入口。
+
 4. 配置默认 AI Provider：
 
 - `AI_BASE_URL`
@@ -37,13 +60,7 @@ AI_MODEL=deepseek-v4-flash
 
 也可以使用 `deepseek-v4-pro` 等 DeepSeek 当前可用模型；不要把 `AI_BASE_URL` 写成模型页或控制台地址。
 
-5. 应用数据库迁移：
-
-```bash
-supabase db push
-```
-
-6. 启动开发服务：
+5. 启动开发服务：
 
 ```bash
 npm run dev
