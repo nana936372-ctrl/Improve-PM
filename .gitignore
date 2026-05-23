@@ -9,6 +9,7 @@ dist/
 coverage/
 playwright-report/
 test-results/
+output/
 tsconfig.tsbuildinfo
 supabase/.branches/
 supabase/.temp/

@@ -9,7 +9,20 @@ export default async function HistoryPage() {
 
   const { data: sessions } = await supabase
     .from("training_sessions")
-    .select("id,title,question_type,overall_score,completed_at")
+    .select(
+      `
+      id,
+      title,
+      question_type,
+      difficulty,
+      overall_score,
+      completed_at,
+      session_questions(title,prompt,scenario,options,rubric,reference_answer),
+      user_responses(selected_options,text_answer,submitted_at),
+      evaluations(overall_score,dimension_scores,strengths,gaps,advice,option_analysis),
+      followup_turns(turn_index,question,intent,user_answer)
+    `
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20);

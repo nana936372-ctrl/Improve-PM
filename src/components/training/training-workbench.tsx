@@ -47,10 +47,21 @@ export function TrainingWorkbench() {
     localStorage.setItem("training-draft", answer);
   }, [answer]);
 
+  async function saveFollowups(nextFollowups: FollowupTurn[]) {
+    if (!sessionId) return;
+    const response = await fetch(`/api/sessions/${sessionId}/followups`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ followups: nextFollowups })
+    });
+    if (!response.ok) throw new Error("追问保存失败。");
+  }
+
   async function generateQuestion() {
     try {
       setError("");
       setStatus("正在生成题目...");
+      setSessionId(null);
       const response = await fetch("/api/ai/generate-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,7 +139,9 @@ export function TrainingWorkbench() {
       });
       if (!response.ok) throw new Error("追问生成失败，请检查 AI 配置后重试。");
       const data = await response.json();
-      setFollowups((current) => [...current, { question: data.followup.question, intent: data.followup.intent }]);
+      const nextFollowups = [...followups, { question: data.followup.question, intent: data.followup.intent }];
+      setFollowups(nextFollowups);
+      await saveFollowups(nextFollowups);
     } catch (err) {
       setError(messageFromError(err));
     } finally {
@@ -136,14 +149,18 @@ export function TrainingWorkbench() {
     }
   }
 
-  function submitFollowupAnswer() {
-    setFollowups((current) => {
-      const next = [...current];
+  async function submitFollowupAnswer() {
+    try {
+      setError("");
+      const next = [...followups];
       const last = next[next.length - 1];
       if (last) next[next.length - 1] = { ...last, answer: pendingFollowupAnswer };
-      return next;
-    });
-    setPendingFollowupAnswer("");
+      setFollowups(next);
+      setPendingFollowupAnswer("");
+      await saveFollowups(next);
+    } catch (err) {
+      setError(messageFromError(err));
+    }
   }
 
   async function generateReferenceAnswer() {
@@ -221,7 +238,7 @@ export function TrainingWorkbench() {
       <section className="grid gap-4">
         <QuestionCard question={question} />
         <AnswerComposer question={question} answer={answer} selectedOptions={selectedOptions} onTextChange={setAnswer} onToggleOption={toggleOption} />
-        <button className="rounded bg-ink px-4 py-2 text-white disabled:opacity-50" type="button" disabled={!question} onClick={submitAnswer}>
+        <button className="rounded bg-ink px-4 py-2 text-white disabled:opacity-50" type="button" disabled={!question || !sessionId || Boolean(status)} onClick={submitAnswer}>
           提交评分
         </button>
         <FollowupPanel

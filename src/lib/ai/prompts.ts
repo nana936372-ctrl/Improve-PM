@@ -2,6 +2,15 @@ import { ABILITY_DIMENSIONS, type AbilityKey } from "@/lib/constants/abilities";
 import type { Difficulty, QuestionType } from "@/lib/types/training";
 
 const rubricText = ABILITY_DIMENSIONS.map((item) => `${item.key}: ${item.label} - ${item.description}`).join("\n");
+const evaluationScoringPrinciples = `评分原则：
+每个评分维度按 0-20 分，maxScore 固定为 20。
+17-20：准确识别核心问题，分析有层次，方案可落地，能说明指标、风险和取舍。
+13-16：覆盖主要问题，但论证、指标或风险处理不够充分。
+8-12：有部分正确判断，但停留在概念层，缺少业务约束、落地路径或验证方式。
+0-7：偏离题意、缺少关键判断，或只给空泛结论。
+dimensionScores 中每一项必须包含 key, score, maxScore, evidence, advice。
+evidence 必须引用用户答案中的具体内容作为 evidence，不能写“AI 未提供该维度的具体依据”。
+advice 必须给出可执行改进动作，例如补充哪类指标、风险兜底、灰度验证、业务沟通或方案分层。`;
 
 export function buildQuestionPrompt(input: {
   questionType: QuestionType;
@@ -26,7 +35,7 @@ export function buildQuestionPrompt(input: {
 ${rubricText}
 
 JSON 字段必须包含：type,title,prompt,abilityKeys,difficulty。
-选择题必须包含 options 和 correctOptions。
+选择题必须包含 options 和 correctOptions；options 必须是数组，格式如 options:[{"id":"A","text":"选项文案"}]，id 只能使用 A/B/C/D，不能使用 label。
 案例题必须包含 scenario 和 rubric。`
     }
   ];
@@ -43,6 +52,8 @@ export function buildEvaluationPrompt(input: { question: unknown; answer: unknow
       content: `请评估用户答案。
 题目：${JSON.stringify(input.question)}
 用户答案：${JSON.stringify(input.answer)}
+
+${evaluationScoringPrinciples}
 
 输出 JSON 字段：overallScore,dimensionScores,strengths,gaps,advice,optionAnalysis,followupQuestion。`
     }
