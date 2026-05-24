@@ -1,9 +1,12 @@
 import { z } from "zod";
 
-import { ABILITY_KEYS, type AbilityKey } from "@/lib/constants/abilities";
+import { ABILITY_KEYS, normalizeAbilityKey, type AbilityKey } from "@/lib/constants/abilities";
 
 const abilityKeySchema = z.custom<AbilityKey>((value) => typeof value === "string" && (ABILITY_KEYS as readonly string[]).includes(value));
-const evaluationDimensionKeySchema = z.string().min(1);
+const evaluationDimensionKeySchema = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  return normalizeAbilityKey(value) ?? value;
+}, abilityKeySchema);
 const structuredTextSchema = z.preprocess((value) => {
   if (value && typeof value === "object") {
     return JSON.stringify(value, null, 2);
@@ -42,7 +45,7 @@ const dimensionScoresSchema = z.preprocess((value) => {
       item && typeof item === "object"
         ? item
         : {
-            key: `dimension_${index + 1}`,
+            key: ABILITY_KEYS[index] ?? ABILITY_KEYS[0],
             score: item,
             maxScore: 20,
             evidence: "AI 未提供该维度的具体依据。",
@@ -67,6 +70,7 @@ const dimensionScoresSchema = z.preprocess((value) => {
 }, z.array(
   z.object({
     key: evaluationDimensionKeySchema,
+    label: z.string().min(1).optional(),
     score: dimensionScoreValueSchema,
     maxScore: dimensionMaxScoreSchema,
     evidence: z.string().min(1),
@@ -120,6 +124,25 @@ export const generatedQuestionSchema = z.object({
   abilityKeys: z.array(abilityKeySchema).min(1),
   difficulty: z.enum(["beginner", "intermediate", "advanced"]),
   rubric: structuredTextSchema.optional()
+}).superRefine((question, ctx) => {
+  if (question.type !== "multiple_choice") return;
+
+  if ((question.options?.length ?? 0) !== 4) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["options"],
+      message: "Multiple-choice questions must include exactly four options."
+    });
+  }
+
+  const correctCount = question.correctOptions?.length ?? 0;
+  if (correctCount < 2 || correctCount > 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["correctOptions"],
+      message: "Multiple-choice questions must include two to three correct answers."
+    });
+  }
 });
 
 export const evaluationSchema = z.object({

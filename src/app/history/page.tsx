@@ -14,6 +14,7 @@ export default async function HistoryPage() {
       id,
       title,
       question_type,
+      ability_keys,
       difficulty,
       overall_score,
       completed_at,

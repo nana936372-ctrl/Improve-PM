@@ -13,4 +13,16 @@ describe("buildAbilitySnapshots", () => {
     });
     expect(rows[0]).toMatchObject({ session_id: "session-1", user_id: "user-1", ability_key: "ai_boundary" });
   });
+
+  it("normalizes AI-generated ability aliases before building snapshots", () => {
+    const rows = buildAbilitySnapshots("session-1", "user-1", {
+      overallScore: 80,
+      strengths: [],
+      gaps: [],
+      advice: "继续训练",
+      dimensionScores: [{ key: "risk_awareness", score: 14, maxScore: 20, evidence: "提到风险", advice: "补充治理" }]
+    });
+
+    expect(rows[0].ability_key).toBe("risk_governance");
+  });
 });

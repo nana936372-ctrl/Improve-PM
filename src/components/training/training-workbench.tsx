@@ -179,7 +179,7 @@ export function TrainingWorkbench() {
           aiConfig: getAiConfig()
         })
       });
-      if (!response.ok) throw new Error("参考答案生成失败，请检查 AI 配置后重试。");
+      if (!response.ok) throw new Error("参考答案生成失败：AI 返回格式不符合要求或服务不可用，请稍后重试。");
       const data = await response.json();
       setReferenceAnswer(data.referenceAnswer);
     } catch (err) {
@@ -249,7 +249,7 @@ export function TrainingWorkbench() {
           onGenerateFollowup={generateFollowup}
           canGenerate={Boolean(question?.type === "case_analysis" && evaluation && followups.length < 3)}
         />
-        {evaluation ? (
+        {evaluation && question?.type !== "single_choice" ? (
           <button className="w-fit rounded border border-line bg-white px-4 py-2" type="button" onClick={generateReferenceAnswer}>
             生成参考答案
           </button>

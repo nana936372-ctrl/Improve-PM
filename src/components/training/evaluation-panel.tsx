@@ -13,7 +13,7 @@ export function EvaluationPanel({ evaluation }: { evaluation: EvaluationResult |
         {evaluation.dimensionScores.map((item) => (
           <div key={item.key} className="rounded border border-line p-3">
             <div className="flex items-center justify-between text-sm font-medium">
-              <span>{item.key}</span>
+              <span>{item.label ?? item.key}</span>
               <span>
                 {item.score}/{item.maxScore}
               </span>

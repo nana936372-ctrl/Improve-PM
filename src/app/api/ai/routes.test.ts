@@ -4,6 +4,7 @@ import { POST as evaluate } from "./evaluate/route";
 import { POST as followup } from "./followup/route";
 import { POST as generateQuestion } from "./generate-question/route";
 import { POST as referenceAnswer } from "./reference-answer/route";
+import { createChatCompletion } from "@/lib/ai/client";
 
 vi.mock("@/lib/auth/guards", () => ({
   requireUser: vi.fn(async () => ({ id: "user-1" }))
@@ -85,6 +86,45 @@ describe("AI API routes", () => {
     expect(body.evaluation.overallScore).toBe(80);
   });
 
+  it("evaluates single-choice answers as an answer explanation without calling the AI provider", async () => {
+    vi.mocked(createChatCompletion).mockClear();
+
+    const response = await evaluate(
+      jsonRequest({
+        question: {
+          type: "single_choice",
+          title: "AI 能力边界判断：用户画像生成",
+          prompt: "哪种做法最符合 AI 能力边界？",
+          options: [
+            { id: "A", text: "直接使用 LLM 分析原始日志。" },
+            { id: "B", text: "先将日志转换为结构化特征，再输入 LLM 生成描述。" },
+            { id: "C", text: "让 LLM 自行设计特征工程和预处理流程。" },
+            { id: "D", text: "完全依赖 LLM，不需要人工审核。" }
+          ],
+          correctOptions: ["B"],
+          abilityKeys: ["ai_boundary"],
+          difficulty: "intermediate"
+        },
+        answer: { selectedOptions: ["B"] }
+      })
+    );
+    const body = await response.json();
+
+    expect(createChatCompletion).not.toHaveBeenCalled();
+    expect(body.evaluation.overallScore).toBe(100);
+    expect(body.evaluation.dimensionScores).toHaveLength(1);
+    expect(body.evaluation.dimensionScores[0]).toMatchObject({
+      key: "ai_boundary",
+      label: "答案解析",
+      score: 100,
+      maxScore: 100
+    });
+    expect(body.evaluation.dimensionScores[0].evidence).toContain("更优答案是 B");
+    expect(body.evaluation.dimensionScores[0].evidence).toContain("先将日志转换为结构化特征");
+    expect(body.evaluation.dimensionScores[0].advice).toContain("PM 需要考虑");
+    expect(body.evaluation.dimensionScores[0].advice).not.toContain("只选择");
+  });
+
   it("creates a follow-up question", async () => {
     const response = await followup(jsonRequest({ question: {}, evaluation: {} }));
     const body = await response.json();
@@ -95,5 +135,48 @@ describe("AI API routes", () => {
     const response = await referenceAnswer(jsonRequest({ question: {}, answer: {}, evaluation: {} }));
     const body = await response.json();
     expect(body.referenceAnswer.outline).toContain("目标");
+  });
+
+  it("creates choice reference answers without calling the AI provider", async () => {
+    vi.mocked(createChatCompletion).mockClear();
+
+    const response = await referenceAnswer(
+      jsonRequest({
+        question: {
+          type: "single_choice",
+          title: "AI 能力边界判断",
+          prompt: "AI 客服能否完全替代人工？",
+          options: [
+            { id: "A", text: "AI 可以完美处理所有类型咨询，无需人工介入" },
+            { id: "B", text: "AI 可以处理标准化、高频重复咨询，但复杂咨询仍需人工" }
+          ],
+          correctOptions: ["B"],
+          abilityKeys: ["ai_boundary"],
+          difficulty: "intermediate"
+        },
+        answer: { selectedOptions: ["B"] },
+        evaluation: {
+          overallScore: 80,
+          dimensionScores: [
+            {
+              key: "ai_boundary",
+              score: 16,
+              maxScore: 20,
+              evidence: "用户选择了 B。",
+              advice: "补充复杂咨询的边界。"
+            }
+          ],
+          strengths: [],
+          gaps: [],
+          advice: "继续训练。"
+        }
+      })
+    );
+    const body = await response.json();
+
+    expect(createChatCompletion).not.toHaveBeenCalled();
+    expect(body.referenceAnswer.outline).toContain("更优选项：B");
+    expect(body.referenceAnswer.sampleAnswer).toContain("PM 需要考虑");
+    expect(body.referenceAnswer.sampleAnswer).toContain("人工兜底");
   });
 });

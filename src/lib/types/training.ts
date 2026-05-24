@@ -11,6 +11,7 @@ export type ChoiceOption = {
 
 export type DimensionScore = {
   key: string;
+  label?: string;
   score: number;
   maxScore: number;
   evidence: string;

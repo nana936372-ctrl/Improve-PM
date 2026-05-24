@@ -19,6 +19,42 @@ describe("generatedQuestionSchema", () => {
     expect(result.correctOptions).toEqual(["A"]);
   });
 
+  it("requires multiple-choice questions to have four options and two to three correct answers", () => {
+    expect(() =>
+      generatedQuestionSchema.parse({
+        type: "multiple_choice",
+        title: "AI 能力边界判断",
+        prompt: "哪些判断合理？",
+        options: [
+          { id: "A", text: "先结构化输入数据。" },
+          { id: "B", text: "加入人工复核。" },
+          { id: "C", text: "完全依赖模型。" },
+          { id: "D", text: "只看自动化率。" }
+        ],
+        correctOptions: ["A"],
+        abilityKeys: ["ai_boundary"],
+        difficulty: "intermediate"
+      })
+    ).toThrow();
+
+    const result = generatedQuestionSchema.parse({
+      type: "multiple_choice",
+      title: "AI 能力边界判断",
+      prompt: "哪些判断合理？",
+      options: [
+        { id: "A", text: "先结构化输入数据。" },
+        { id: "B", text: "加入人工复核。" },
+        { id: "C", text: "完全依赖模型。" },
+        { id: "D", text: "只看自动化率。" }
+      ],
+      correctOptions: ["A", "B"],
+      abilityKeys: ["ai_boundary"],
+      difficulty: "intermediate"
+    });
+
+    expect(result.correctOptions).toEqual(["A", "B"]);
+  });
+
   it("normalizes choice option labels into ids", () => {
     const result = generatedQuestionSchema.parse({
       type: "single_choice",
@@ -141,7 +177,7 @@ describe("evaluationSchema", () => {
     const result = evaluationSchema.parse({
       overallScore: 81,
       dimensionScores: {
-        directUse: {
+        risk_awareness: {
           score: 14,
           maxScore: 20,
           evidence: "说明了直接使用的限制。",
@@ -156,8 +192,27 @@ describe("evaluationSchema", () => {
       }
     });
 
-    expect(result.dimensionScores[0].key).toBe("directUse");
+    expect(result.dimensionScores[0].key).toBe("risk_governance");
     expect(result.optionAnalysis?.directUse).toContain("上线快");
+  });
+
+  it("rejects unknown evaluation dimension keys to prevent polluted ability snapshots", () => {
+    expect(() =>
+      evaluationSchema.parse({
+        overallScore: 81,
+        dimensionScores: {
+          totally_custom_dimension: {
+            score: 14,
+            maxScore: 20,
+            evidence: "随意造的维度。",
+            advice: "不应入库。"
+          }
+        },
+        strengths: [],
+        gaps: [],
+        advice: "继续训练。"
+      })
+    ).toThrow();
   });
 
   it("scales oversized dimension scores and wraps text lists", () => {
@@ -193,14 +248,14 @@ describe("evaluationSchema", () => {
 
     expect(result.dimensionScores).toEqual([
       {
-        key: "dimension_1",
+        key: "user_insight",
         score: 16,
         maxScore: 20,
         evidence: "AI 未提供该维度的具体依据。",
         advice: "建议补充该维度的分析。"
       },
       {
-        key: "dimension_2",
+        key: "problem_framing",
         score: 13,
         maxScore: 20,
         evidence: "AI 未提供该维度的具体依据。",

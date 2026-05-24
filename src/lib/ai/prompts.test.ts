@@ -23,6 +23,20 @@ describe("buildQuestionPrompt", () => {
     expect(messages[1].content).toContain('options:[{"id":"A","text":"');
   });
 
+  it("adds strong multi-choice constraints to avoid one-obvious-positive options", () => {
+    const messages = buildQuestionPrompt({
+      questionType: "multiple_choice",
+      abilityKeys: ["ai_boundary"],
+      difficulty: "intermediate"
+    });
+
+    expect(messages[1].content).toContain("多选题必须有 4 个选项");
+    expect(messages[1].content).toContain("correctOptions 必须包含 2 到 3 个选项");
+    expect(messages[1].content).toContain("不能只有一个明显正面选项");
+    expect(messages[1].content).toContain("每个选项都要像真实 PM 决策中的可争议判断");
+    expect(messages[1].content).toContain("避免使用绝对化词汇");
+  });
+
   it("includes concrete scoring principles in evaluation prompts", () => {
     const messages = buildEvaluationPrompt({
       question: { title: "AI 客服边界" },

@@ -9,6 +9,7 @@ const evaluationScoringPrinciples = `评分原则：
 8-12：有部分正确判断，但停留在概念层，缺少业务约束、落地路径或验证方式。
 0-7：偏离题意、缺少关键判断，或只给空泛结论。
 dimensionScores 中每一项必须包含 key, score, maxScore, evidence, advice。
+dimensionScores.key 只能使用以下官方能力 key：${ABILITY_DIMENSIONS.map((item) => item.key).join(", ")}，不要自创英文 key 或中文短标签。
 evidence 必须引用用户答案中的具体内容作为 evidence，不能写“AI 未提供该维度的具体依据”。
 advice 必须给出可执行改进动作，例如补充哪类指标、风险兜底、灰度验证、业务沟通或方案分层。`;
 
@@ -36,6 +37,9 @@ ${rubricText}
 
 JSON 字段必须包含：type,title,prompt,abilityKeys,difficulty。
 选择题必须包含 options 和 correctOptions；options 必须是数组，格式如 options:[{"id":"A","text":"选项文案"}]，id 只能使用 A/B/C/D，不能使用 label。
+多选题必须有 4 个选项，correctOptions 必须包含 2 到 3 个选项，不能只有一个明显正面选项、其余都是明显错误项。
+多选题每个选项都要像真实 PM 决策中的可争议判断，覆盖合理做法、过度自动化、过度保守、忽略风险、指标缺失、边界误判等不同类型。
+多选题选项避免使用绝对化词汇堆叠，例如“完全、所有、无需、只要、一定、必然”，除非该词正是要考察的错误边界。
 案例题必须包含 scenario 和 rubric。`
     }
   ];

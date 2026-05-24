@@ -4,8 +4,9 @@ import { z } from "zod";
 import { createChatCompletion } from "@/lib/ai/client";
 import { parseAiJson } from "@/lib/ai/json";
 import { buildEvaluationPrompt } from "@/lib/ai/prompts";
-import { evaluationSchema } from "@/lib/ai/schemas";
+import { evaluationSchema, generatedQuestionSchema } from "@/lib/ai/schemas";
 import { requireUser } from "@/lib/auth/guards";
+import { buildSingleChoiceEvaluation } from "@/lib/training/choice-evaluation";
 
 type PresentJsonValue = string | number | boolean | null | Record<string, unknown> | unknown[];
 
@@ -27,6 +28,13 @@ const requestSchema = z.object({
 export async function POST(request: Request) {
   await requireUser();
   const input = requestSchema.parse(await request.json());
+  const question = generatedQuestionSchema.safeParse(input.question);
+
+  if (question.success && question.data.type === "single_choice") {
+    const answer = z.object({ selectedOptions: z.array(z.string()).default([]) }).parse(input.answer);
+    return NextResponse.json({ evaluation: buildSingleChoiceEvaluation({ question: question.data, selectedOptions: answer.selectedOptions }) });
+  }
+
   const messages = buildEvaluationPrompt({ question: input.question, answer: input.answer });
   const content = await createChatCompletion(messages, input.aiConfig);
   const evaluation = parseAiJson(content, evaluationSchema);
