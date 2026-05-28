@@ -1,6 +1,8 @@
 # AI 产品经理思维训练器
 
-一个面向 AI 产品经理能力训练的响应式 Web MVP。用户可以注册登录，配置 OpenAI-compatible 模型服务，完成选择题快练和案例深训，并获得 AI 评分、面试官追问、参考答案和成长记录。
+一个面向 AI 产品经理能力训练的响应式 Web MVP。用户可以登录已有账号，配置 OpenAI-compatible 模型服务，完成选择题快练和案例深训，并获得 AI 评分、面试官追问、参考答案和成长记录。
+
+在线 Demo：[https://improve-pm.vercel.app](https://improve-pm.vercel.app)
 
 ## 页面截图
 
@@ -16,7 +18,7 @@
 
 ## 功能说明
 
-- 认证与路由保护：支持邮箱注册、登录、退出，未登录用户会被重定向到认证页。
+- 认证与路由保护：支持邮箱登录、退出，未登录用户会被重定向到认证页。当前真实注册流程尚未完成，需要使用已预置账号登录。
 - 训练台：支持案例深训、单选快练、多选快练，可选择能力维度和难度。
 - AI 出题与反馈：服务端调用 OpenAI-compatible Chat Completions API 生成题目、评分、追问和参考答案。
 - 选择题评分：单选题本地即时评分，多选题支持漏选、错选和部分得分。
@@ -125,6 +127,8 @@ npm run dev
 
 ## Vercel 部署
 
+线上 Demo 已部署到 [https://improve-pm.vercel.app](https://improve-pm.vercel.app)。
+
 在 Vercel Project Settings 中配置与 `.env.example` 对应的环境变量。Supabase Auth 的 Site URL 和 Redirect URLs 需要加入 Vercel 部署域名。
 
 部署前建议先执行：
@@ -148,6 +152,7 @@ npm run build
 
 ## 常见问题
 
+- 当前能直接注册新账号吗？不能。真实注册流程尚未完成，Demo 阶段请使用已预置账号登录。
 - 登录页提示“请先配置 Supabase 登录参数”：检查 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`。
 - 题目生成或评分失败：检查 `AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL`，并确认服务商支持 `/chat/completions` 和 JSON 输出。
 - 云端登录后回调异常：检查 Supabase Auth 的 Site URL 和 Redirect URLs 是否包含当前部署域名。
