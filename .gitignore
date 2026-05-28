@@ -11,5 +11,7 @@ playwright-report/
 test-results/
 output/
 tsconfig.tsbuildinfo
+.codex-dev-server-*.log
+.playwright-cli/
 supabase/.branches/
 supabase/.temp/
